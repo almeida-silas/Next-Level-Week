@@ -1,33 +1,23 @@
 import { Request, Response, request } from 'express';
 import knex from '../config/database';
 
-interface IPointItems {
-  name: string;
-  email: string;
-  whatsapp: string;
-  longitude: number;
-  latitude: number;
-  city: string;
-  uf: string;
-}
-
 class PointsController {
-  async index(response: Response) {
+  async index(request: Request, response: Response) {
     const { city, uf, items } = request.query;
 
     const parsedItems = String(items)
       .split(',')
       .map((item) => Number(item.trim()));
 
-    const points = knex('points')
+    const points = await knex('points')
       .join('point_items', 'points.id', '=', 'point_items.point_id')
-      .whereIn('point_items.item.id', parsedItems)
-      .where('city', String(city))
-      .where('uf', String(uf))
+      .whereIn('point_items.item_id', parsedItems)
+      .where('city', 'like', `%${String(city)}%`)
+      .where('uf', 'like', `%${String(uf)}%`)
       .distinct()
       .select('points.*');
 
-    return response.json(points);
+    return response.send(points);
   }
 
   async show(request: Request, response: Response) {
@@ -41,7 +31,7 @@ class PointsController {
 
     const items = await knex('items')
       .join('point_items', 'items.id', '=', 'point_items.item_id')
-      .where('point_items.point.id', id);
+      .where('point_items.point_id', id);
 
     return response.json({ point, items });
   }
